@@ -3,5 +3,37 @@
 version = 4
 
 [[package]]
+name = "bitflags"
+version = "2.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "843867be96c8daad0d758b57df9392b6d8d271134fce549de6ce169ff98a92af"
+
+[[package]]
 name = "connection-test"
 version = "0.1.0"
+dependencies = [
+ "sdl3",
+]
+
+[[package]]
+name = "libc"
+version = "0.2.184"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48f5d2a454e16a5ea0f4ced81bd44e4cfc7bd3a507b61887c99fd3538b28e4af"
+
+[[package]]
+name = "sdl3"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "96e613fca5924ccab8ab8369ab292a1b4720b125e98007fbda163f4ce7176472"
+dependencies = [
+ "bitflags",
+ "libc",
+ "sdl3-sys",
+]
+
+[[package]]
+name = "sdl3-sys"
+version = "0.6.2+SDL-3.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "852c6c7b943f26f81f4a2da37a5ef424c3fc1677e404dce76ce8b078e7f7da5e"
