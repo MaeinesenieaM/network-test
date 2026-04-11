@@ -1,67 +1,10 @@
 use std::env;
 use std::net;
-use std::net::IpAddr;
-use std::process;
-use std::str::FromStr;
-use std::time::{Duration, Instant};
+use std::time::{Duration};
 
 use sdl3::keyboard::Keycode;
 
-enum ProgramMode {
-    Server,
-    Client
-}
-
-impl std::fmt::Display for ProgramMode {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match self {
-            ProgramMode::Client  => write!(formatter, "ClientMode"),
-            ProgramMode::Server  => write!(formatter, "ServerMode"),
-        }
-    }
-}
-
-struct ProgramConfig {
-    mode: ProgramMode,
-    ip: net::IpAddr,
-    port: u16
-}
-
-fn parse_mode(mode: &str) -> Result<ProgramMode, String> {
-    match mode {
-        "server" => Ok(ProgramMode::Server),
-        "client" => Ok(ProgramMode::Client),
-        _        => Err(format!("Invalid mode!"))
-    }
-}
-
-fn parse_ip(ip: &str) -> Result<IpAddr, String> {
-    IpAddr::from_str(ip).map_err(|err| format!("{}", err))
-}
-
-fn parse_config(args: Vec<String>) -> Result<ProgramConfig, String> {
-
-    let mode: String = args.get(1)
-        .ok_or("mode wasn't inputed")?
-        .to_lowercase();
-
-    let ip:   String = args.get(2)
-        .ok_or(format!("IP address wasn't inputed"))?
-        .to_string();
-
-    let port: u16 = args.get(3)
-        .map(|text_value| text_value.parse::<u16>().map_err(|_| format!("Invalid inputed port.")))
-        .transpose()?
-        .unwrap_or(8008);
-
-    let config = ProgramConfig {
-        mode: parse_mode(&mode)?,
-        ip: parse_ip(&ip)?,
-        port
-    };
-
-    Ok(config)
-}
+use connection_test::core::shared::*;
 
 struct MouseCursor {
     position: (f32, f32)
@@ -164,7 +107,7 @@ fn client_logic() {
                     break 'running
                 }
                 sdl3::event::Event::MouseMotion {..} => {
-                    client_cursor.position.0 = mouse_state.x() + 50.0;
+                    client_cursor.position.0 = mouse_state.x();
                     client_cursor.position.1 = mouse_state.y();
                 }
                 _ => {}
@@ -172,25 +115,43 @@ fn client_logic() {
         }
 
         canvas.set_draw_color(sdl3::pixels::Color::RED);
+
+        canvas.draw_rect(sdl3::render::FRect::new(
+            client_cursor.position.0 - 2.0,
+            client_cursor.position.1 - 2.0,
+            4.0,
+            4.0
+        ));
+
         let _ = canvas.draw_point(client_cursor.position);
 
         canvas.present();
     }
 }
 
-fn main() {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let arguments: Vec<String> = env::args().collect();
 
-    let config: ProgramConfig = match parse_config(arguments) {
-        Ok(config) => config,
-        Err(error) => {
-            println!("{}", error);
-            process::exit(1);
-        }
-    };
+    let mode: String = arguments.get(1)
+        .ok_or("mode wasn't inputed")?
+        .to_lowercase();
+    
+    let ip:   String = arguments.get(2)
+        .ok_or(format!("IP address wasn't inputed"))?
+        .to_string();
+    
+    let port: u16 = arguments.get(3)
+        .map(|text_value| text_value.parse::<u16>().map_err(|_| format!("Invalid inputed port.")))
+        .transpose()?
+        .unwrap_or(8008);
+
+
+    let config: ProgramConfig = ProgramConfig::try_from((mode, ip, port))?;
 
     match config.mode {
         ProgramMode::Server => server_init(config),
         ProgramMode::Client => client_init(config),
     };
+
+    Ok(())
 }
