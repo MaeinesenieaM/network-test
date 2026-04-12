@@ -134,6 +134,7 @@ impl Draw for MouseCursor {
 }
 
 #[derive(Debug)]
+#[repr(u8)]
 pub enum PacketType {
     Acknowledge  = 0xff,
     PacketError  = 0x00,
@@ -154,6 +155,7 @@ impl TryFrom<u8> for PacketType {
 }
 
 #[derive(Debug)]
+#[repr(u8)]
 pub enum PacketCursor {
     Update = 0x01,
     Delete = 0x02,
@@ -187,6 +189,12 @@ impl Packet {
 
         let packet_type: u8 = bytes[0];
         let payload_len: u16 = u16::from_be_bytes([bytes[1], bytes[2]]);
+
+        if payload_len == 0 { 
+            //println!("{}, {}, {}", bytes[1], bytes[2], payload_len);
+            return None 
+        }
+
         let payload: Vec<u8> = bytes[3..3 + payload_len as usize].to_vec();
 
         Some(Packet {
@@ -207,7 +215,7 @@ impl Packet {
 }
 
 #[derive(Debug)]
-enum PacketError {
+pub enum PacketError {
     TooShort { expected: usize, got: usize },
     InvalidData(String),
 }
@@ -229,7 +237,7 @@ pub trait PacketLoad {
 
     fn from_packet_payload(payload: &Vec<u8>) -> Result<Self, PacketError> where Self: Sized;
 
-    fn payload_size() -> usize;
+    fn payload_size() -> u16;
 }
 
 
@@ -251,8 +259,8 @@ impl PacketLoad for MouseCursor {
     }
 
     fn from_packet_payload(payload: &Vec<u8>) -> Result<MouseCursor, PacketError> {
-        if payload.len() < Self::payload_size() {
-            return Err(PacketError::TooShort { expected: Self::payload_size(), got: payload.len() })
+        if payload.len() < Self::payload_size() as usize {
+            return Err(PacketError::TooShort { expected: Self::payload_size() as usize, got: payload.len() })
         };
 
         let pos_x = f32::from_be_bytes(payload[0..4]
@@ -267,25 +275,19 @@ impl PacketLoad for MouseCursor {
         let r = payload[9];
         let g = payload[10];
         let b = payload[11];
-        let a = payload[12];
 
         Ok(MouseCursor {
             position: sdl3::render::FPoint::new(pos_x, pos_y),
             pressed: pressed,
-            color: pixels::Color { r, g, b, a }
+            color: pixels::Color { r, g, b, a: 0xff }
         })
     }
 
-    fn payload_size() -> usize {13}
+    fn payload_size() -> u16 {12}
 }
 
-struct PacketReader {
-    packet_type: u8,
-    buffer: Vec<u8>
-}
-
-impl PacketReader {
-    fn read<T: PacketLoad>(packet: &Packet) -> Option<T> {
-        T::from_packet_payload(&packet.payload).ok()
-    }
+pub trait Session {
+    fn init(config: ProgramConfig) -> Option<Self> where Self: Sized;
+    fn update(&mut self);
+    fn is_running(&self) -> bool;
 }
