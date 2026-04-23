@@ -232,12 +232,14 @@ impl std::fmt::Display for PacketError {
 
 impl std::error::Error for PacketError {}
 
-pub trait PacketLoad {
+pub trait PacketLoad: Sized {
     fn to_packet_payload(&self) -> Vec<u8>;
 
-    fn from_packet_payload(payload: &Vec<u8>) -> Result<Self, PacketError> where Self: Sized;
+    fn from_packet_payload(payload: &Vec<u8>) -> Result<Self, PacketError>;
 
-    fn payload_size() -> u16;
+    fn payload_size() -> u16 {
+        std::mem::size_of() as u16
+    }
 }
 
 
@@ -282,8 +284,6 @@ impl PacketLoad for MouseCursor {
             color: pixels::Color { r, g, b, a: 0xff }
         })
     }
-
-    fn payload_size() -> u16 {12}
 }
 
 pub trait Session {
