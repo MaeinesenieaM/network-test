@@ -238,7 +238,7 @@ pub trait PacketLoad: Sized {
     fn from_packet_payload(payload: &Vec<u8>) -> Result<Self, PacketError>;
 
     fn payload_size() -> u16 {
-        std::mem::size_of() as u16
+        std::mem::size_of::<Self>() as u16
     }
 }
 
